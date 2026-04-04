@@ -7,7 +7,7 @@ import (
 	"strings"
 	"time"
 
-	datePkg "github.com/Yandex-Practicum/final/pkg/date"
+	datePkg "github.com/kialkuz/task-manager/pkg/date"
 )
 
 func checkIntervalTypeMonthDays(now time.Time, formatParts []string) error {

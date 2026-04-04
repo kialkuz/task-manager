@@ -1,73 +1,89 @@
 package task
 
 import (
-	"bytes"
-	"encoding/json"
-	"errors"
-	"net/http"
 	"time"
 
-	"github.com/Yandex-Practicum/final/internal/dto"
-	"github.com/Yandex-Practicum/final/internal/services/task/nextDate"
-	datePkg "github.com/Yandex-Practicum/final/pkg/date"
+	"github.com/kialkuz/task-manager/internal/domain"
+	"github.com/kialkuz/task-manager/internal/infrastructure/repository"
 )
 
-var task dto.Task
-
-func GetTaskBody(r *http.Request) (*dto.Task, error) {
-	var buf bytes.Buffer
-
-	_, err := buf.ReadFrom(r.Body)
-	if err != nil {
-		return nil, errors.New("ошибка чтения тела запроса")
-	}
-
-	if err = json.Unmarshal(buf.Bytes(), &task); err != nil {
-		return nil, errors.New("ошибка десериализации JSON")
-	}
-
-	return &task, nil
+type TaskService struct {
+	repository repository.TaskRepository
 }
 
-func CheckTask(task *dto.Task) error {
-	if task.Title == "" {
-		return errors.New("отсутствует заголовок задачи")
+func NewService(repository repository.TaskRepository) TaskService {
+	return TaskService{repository: repository}
+}
+
+func (t *TaskService) Add(task domain.Task) (int64, error) {
+	err := task.PrepareDateByRules()
+	if err != nil {
+		return 0, err
 	}
 
-	if task.Date != "" {
-		_, err := time.Parse(datePkg.DateFormat, task.Date)
-		if err != nil {
-			return errors.New("дата представлена в формате, отличном от 20060102")
-		}
+	id, err := t.repository.Add(task)
+	if err != nil {
+		return 0, err
+	}
+
+	return id, nil
+}
+
+func (t *TaskService) Update(task domain.Task) error {
+	err := task.PrepareDateByRules()
+	if err != nil {
+		return err
+	}
+
+	err = t.repository.Update(task)
+	if err != nil {
+		return err
 	}
 
 	return nil
 }
 
-func GetDateByRules(task *dto.Task) (string, error) {
-	now := time.Now()
-
-	var dateByRules string
-	if task.Date != "" {
-		t, _ := time.Parse(datePkg.DateFormat, task.Date)
-		dateByRules = t.Format(datePkg.DateFormat)
-
-		if datePkg.IsDateAfter(now, t) {
-			if len(task.Repeat) == 0 {
-				// если правила повторения нет, то берём сегодняшнее число
-				dateByRules = now.Format(datePkg.DateFormat)
-			} else {
-				// в противном случае, берём вычисленную ранее следующую дату
-				next, err := nextDate.NextDate(now, task.Date, task.Repeat)
-				if err != nil {
-					return "", errors.New("ошибка получения даты задачи")
-				}
-				dateByRules = next
-			}
-		}
-	} else {
-		dateByRules = now.Format(datePkg.DateFormat)
+func (t *TaskService) Delete(id int) error {
+	err := t.repository.Delete(id)
+	if err != nil {
+		return err
 	}
 
-	return dateByRules, nil
+	return nil
+}
+
+func (t *TaskService) Get(id int) (*domain.Task, error) {
+	task, err := t.repository.Get(id)
+	if err != nil {
+		return nil, err
+	}
+
+	return task, nil
+}
+
+func (t *TaskService) GetList(limit int) ([]*domain.Task, error) {
+	tasks, err := t.repository.GetList(limit)
+	if err != nil {
+		return nil, err
+	}
+
+	return tasks, nil
+}
+
+func (t *TaskService) SearchByText(data string, limit int) ([]*domain.Task, error) {
+	tasks, err := t.repository.SearchByText(data, limit)
+	if err != nil {
+		return nil, err
+	}
+
+	return tasks, nil
+}
+
+func (t *TaskService) SearchByDate(searchDate time.Time, limit int) ([]*domain.Task, error) {
+	tasks, err := t.repository.SearchByDate(searchDate, limit)
+	if err != nil {
+		return nil, err
+	}
+
+	return tasks, nil
 }

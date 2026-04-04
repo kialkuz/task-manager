@@ -4,7 +4,7 @@ import (
 	"errors"
 	"strconv"
 
-	"github.com/Yandex-Practicum/final/internal/infrastructure/env"
+	"github.com/kialkuz/task-manager/internal/infrastructure/env"
 )
 
 func checkIntervalTypeDays(formatParts []string) error {
@@ -21,7 +21,7 @@ func checkIntervalTypeDays(formatParts []string) error {
 		return errors.New("передан нулевой или отрицательный интервал")
 	}
 
-	maxIntervalDaysNumber, err := strconv.Atoi(env.EnvList.MaxIntervalDays)
+	maxIntervalDaysNumber, err := strconv.Atoi(env.GetEnv("TODO_MAX_INTERNAL_DAYS", ""))
 	if err != nil {
 		return errors.New("максимально допустимое число дней должно быть цифрой")
 	}

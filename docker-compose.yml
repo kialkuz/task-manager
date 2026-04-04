@@ -1,0 +1,34 @@
+services:
+  app:
+    build: ./docker/go
+    user: "${UID}:${GID}"
+    volumes:
+      - .:/app
+    ports:
+      - "7540:7540"
+
+  db:
+    image: postgres:17
+    container_name: my_postgres
+    environment:
+      - POSTGRES_USER=${DB_USER}
+      - POSTGRES_PASSWORD=${DB_PASSWORD}
+      - POSTGRES_DB=${DB_NAME}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    ports:
+      - "54321:5432"
+
+  migrate:
+    build:
+      context: docker/migrate
+      args:
+        - UID=${UID}
+        - GID=${GID}
+    depends_on:
+      - db
+    volumes:
+      - ./internal/migrations:/migrations
+
+volumes:
+  postgres_data:

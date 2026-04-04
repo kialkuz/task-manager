@@ -3,15 +3,14 @@ package api
 import (
 	"bytes"
 	"encoding/json"
-	"fmt"
 	"log"
 	"net/http"
 	"time"
 
-	"github.com/Yandex-Practicum/final/internal/dto"
-	"github.com/Yandex-Practicum/final/internal/infrastructure/env"
-	httpService "github.com/Yandex-Practicum/final/internal/services/http"
-	jwtService "github.com/Yandex-Practicum/final/pkg/jwt"
+	responseDto "github.com/kialkuz/task-manager/internal/delivery/http/dto/response"
+	httpService "github.com/kialkuz/task-manager/internal/delivery/http/services"
+	"github.com/kialkuz/task-manager/internal/infrastructure/env"
+	jwtService "github.com/kialkuz/task-manager/pkg/jwt"
 )
 
 type UserData struct {
@@ -43,15 +42,15 @@ func signinHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if data.Password != env.EnvList.Password {
-		httpService.WriteJson(w, dto.ErrorResponse{ErrorText: "Неверный пароль"}, http.StatusUnauthorized)
+	if data.Password != env.GetEnv("AUTH_PASSWORD", "") {
+		httpService.WriteJson(w, responseDto.ErrorResponse{ErrorText: "Неверный пароль"}, http.StatusUnauthorized)
 		return
 	}
 
 	token, err := jwtService.CreateToken(data.Password)
 	if err != nil {
 		log.Println("failed to sign jwt: %s\n" + err.Error())
-		httpService.WriteJson(w, dto.ErrorResponse{ErrorText: "Неверный пароль"}, http.StatusUnauthorized)
+		httpService.WriteJson(w, responseDto.ErrorResponse{ErrorText: "Неверный пароль"}, http.StatusUnauthorized)
 		return
 	}
 
@@ -62,6 +61,5 @@ func signinHandler(w http.ResponseWriter, r *http.Request) {
 	}
 	http.SetCookie(w, cookie)
 
-	fmt.Println(token)
 	httpService.WriteJsonOKResponse(w, SuccessResponse{Token: token})
 }
